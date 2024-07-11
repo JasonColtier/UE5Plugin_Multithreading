@@ -16,8 +16,12 @@
 #include "HAL/Runnable.h"
 #include "HAL/RunnableThread.h"
 #include "HAL/ThreadSafeBool.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Logging/StructuredLog.h"
 
 #include "Misc/SingleThreadRunnable.h"
+
+class AMultiThreadedActor;
 
 class FRamaThreadBase : public FRunnable, FSingleThreadRunnable
 {
@@ -26,9 +30,7 @@ public:
 	 * @param InThreadTickRate The amount of time to wait between loops.
 	 * @param ThreadDescription The thread description text (for debugging).
 	 */
-	FRamaThreadBase(const FTimespan& InThreadTickRate, const TCHAR* ThreadDescription)
-		: Stopping(false)
-		  , ThreadTickRate(InThreadTickRate)
+	FRamaThreadBase(const FTimespan& InThreadTickRate, const TCHAR* ThreadDescription,AMultiThreadedActor* MultiThreadedActor) : Stopping(false), ThreadTickRate(InThreadTickRate), JoyActor(MultiThreadedActor)
 	{
 		Paused.AtomicSet(false);
 		//allocated memory
@@ -73,7 +75,24 @@ public:
 	//To be Subclassed
 	virtual void JoyTick()
 	{
+		if(ThreadTickRate.GetTotalSeconds() > 0)
+		{
+			const double Overflow = GetOverflowFromLastTick();
+			UE_LOGFMT(LogTemp, Log, "sleeping thread for {0} sec",ThreadTickRate.GetTotalSeconds() - Overflow);
+			JoyWait(ThreadTickRate.GetTotalSeconds() - Overflow);
+		}
+	
+		//Link to UE World <3 Rama
+		if(!JoyActor) 
+		{
+			return;
+		}
+
+		JoyActor->JoyThreadTick();
 	}
+
+	//a reference to the unreal actor that will receive the thread tick
+	AMultiThreadedActor* JoyActor = nullptr;
 
 	//~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -82,6 +101,7 @@ public:
 
 	virtual bool Init() override
 	{
+		LastTickTime = FDateTime::Now();
 		return true;
 	}
 
@@ -168,4 +188,27 @@ protected:
 
 	/** Holds the amount of time to wait */
 	FTimespan ThreadTickRate;
+
+	FDateTime LastTickTime;
+
+	double LastOverflow = 0;
+
+private:
+	double GetOverflowFromLastTick()
+	{
+		//debug time spend since last pos
+		FDateTime CurrentTime = FDateTime::Now();
+		// UE_LOGFMT(LogTemp, Log, "current time : {0}", CurrentTime.GetMillisecond());
+		// UE_LOGFMT(LogTemp, Log, "last tick time : {0}", LastTickTime.GetMillisecond());
+
+		FTimespan ElapsedTime = UKismetMathLibrary::Subtract_DateTimeDateTime(CurrentTime,LastTickTime);
+		UE_LOGFMT(LogTemp, Log, "ElapsedTime : {0}", ElapsedTime.GetTotalSeconds());
+		
+		
+		LastOverflow = ElapsedTime.GetTotalSeconds() - ThreadTickRate.GetTotalSeconds() + LastOverflow;
+		LastOverflow = UKismetMathLibrary::FClamp(LastOverflow,0,ThreadTickRate.GetTotalSeconds()*10);
+		UE_LOGFMT(LogTemp, Log, "Overflow from last tick was {0}", LastOverflow);
+		LastTickTime = FDateTime::Now();
+		return LastOverflow;
+	}
 };
