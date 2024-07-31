@@ -78,7 +78,7 @@ public:
 		if(ThreadTickRate.GetTotalSeconds() > 0)
 		{
 			const double Overflow = GetOverflowFromLastTick();
-			UE_LOGFMT(LogTemp, Log, "sleeping thread for {0} sec",ThreadTickRate.GetTotalSeconds() - Overflow);
+			// UE_LOGFMT(LogTemp, Log, "sleeping thread for {0} sec",ThreadTickRate.GetTotalSeconds() - Overflow);
 			JoyWait(ThreadTickRate.GetTotalSeconds() - Overflow);
 		}
 	
@@ -202,12 +202,12 @@ private:
 		// UE_LOGFMT(LogTemp, Log, "last tick time : {0}", LastTickTime.GetMillisecond());
 
 		FTimespan ElapsedTime = UKismetMathLibrary::Subtract_DateTimeDateTime(CurrentTime,LastTickTime);
-		UE_LOGFMT(LogTemp, Log, "ElapsedTime : {0}", ElapsedTime.GetTotalSeconds());
+		// UE_LOGFMT(LogTemp, Log, "ElapsedTime : {0}", ElapsedTime.GetTotalSeconds());
 		
 		
 		LastOverflow = ElapsedTime.GetTotalSeconds() - ThreadTickRate.GetTotalSeconds() + LastOverflow;
 		LastOverflow = UKismetMathLibrary::FClamp(LastOverflow,0,ThreadTickRate.GetTotalSeconds()*10);
-		UE_LOGFMT(LogTemp, Log, "Overflow from last tick was {0}", LastOverflow);
+		// UE_LOGFMT(LogTemp, Log, "Overflow from last tick was {0}", LastOverflow);
 		LastTickTime = FDateTime::Now();
 		return LastOverflow;
 	}
