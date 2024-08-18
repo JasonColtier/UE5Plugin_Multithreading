@@ -30,7 +30,7 @@ public:
 	 * @param InThreadTickRate The amount of time to wait between loops.
 	 * @param ThreadDescription The thread description text (for debugging).
 	 */
-	FRamaThreadBase(const FTimespan& InThreadTickRate, const TCHAR* ThreadDescription,AMultiThreadedActor* MultiThreadedActor) : Stopping(false), ThreadTickRate(InThreadTickRate), JoyActor(MultiThreadedActor)
+	FRamaThreadBase(const FTimespan& InThreadTickRate, const TCHAR* ThreadDescription,AMultiThreadedActor* MultiThreadedActor) : JoyActor(MultiThreadedActor),Stopping(false),ThreadTickRate(InThreadTickRate)
 	{
 		Paused.AtomicSet(false);
 		//allocated memory
